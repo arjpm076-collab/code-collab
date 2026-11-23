@@ -1,0 +1,24 @@
+import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite'
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    host: true,
+    port: 5173,
+    // Allow WebSocket connections
+    ws: {
+      port: 5173,
+    },
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: true,
+  },
+  resolve: {
+    alias: {
+      '@': '/src',
+    },
+  },
+})

@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CodeCollab - Real-Time Collaborative Coding</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      background: #f4f3ec;
+      color: #08060d;
+      display: flex;
+      flex-direction: column;
+    }
+    .header {
+      padding: 16px 32px;
+      background: #fff;
+      border-bottom: 1px solid #e5e4e7;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .header h1 {
+      margin: 0;
+      background: linear-gradient(90deg, #aa3bff, #6b46c1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .dashboard-toggle {
+      padding: 8px 16px;
+      background: rgba(170, 59, 255, 0.1);
+      color: #aa3bff;
+      border: 1px solid rgba(170, 59, 255, 0.5);
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 12px;
+      margin-left: 16px;
+      transition: all 0.2s;
+    }
+    .dashboard-toggle:hover {
+      background: rgba(170, 59, 255, 0.2);
+    }
+    .editor-container {
+      flex: 1;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .toolbar {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+    .language-select {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid #e5e4e7;
+      background: #f4f3ec;
+      font-size: 14px;
+    }
+    textarea {
+      flex: 1;
+      width: 100%;
+      min-height: 400px;
+      padding: 16px;
+      font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace;
+      font-size: 14px;
+      background: #1f2028;
+      color: #abb2bf;
+      border: 1px solid #2e303a;
+      border-radius: 12px;
+      resize: both;
+      outline: none;
+    }
+    textarea:focus { outline: 2px solid #aa3bff; }
+    .status-bar {
+      background: #fff;
+      padding: 12px 32px;
+      border-top: 1px solid #e5e4e7;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+    .user-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: rgba(244, 243, 236, 0.5);
+      border-radius: 16px;
+      font-size: 12px;
+    }
+    .user-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    .modal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: #fff;
+      padding: 32px;
+      border-radius: 16px;
+      min-width: 300px;
+      text-align: center;
+    }
+    input {
+      padding: 12px 16px;
+      width: 100%;
+      margin: 16px 0;
+      border-radius: 4px;
+      border: 1px solid #e5e4e7;
+      font-size: 14px;
+    }
+    button {
+      padding: 12px 24px;
+      background: #aa3bff;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    /* Dashboard Styles */
+    .dashboard {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      padding: 24px 32px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .stat-card {
+      background: rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 20px;
+      backdrop-filter: blur(10px);
+    }
+    .stat-label { font-size: 14px; opacity: 0.9; margin-bottom: 8px; }
+    .stat-value { font-size: 28px; font-weight: bold; }
+    .stat-sub { font-size: 12px; opacity: 0.8; margin-top: 8px; }
+    .participants-section {
+      padding: 0 32px 16px;
+    }
+    .participants-title {
+      color: #08060d;
+      fontSize: 18px;
+      marginBottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .participant-list {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .participant-item {
+      background: #fff;
+      border: 2px solid rgba(170, 59, 255, 0.5);
+      border-radius: 12px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 160px;
+    }
+    .participant-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #aa3bff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: white;
+    }
+    .participant-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .participant-name {
+      fontWeight: 600;
+      fontSize: 14px;
+      color: #08060d;
+    }
+    .participant-time {
+      fontSize: 11px;
+      color: #6b6375;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>CodeCollab</h1>
+    <button class="dashboard-toggle" onclick="toggleDashboard()">Show Dashboard</button>
+    <span id="status">Connecting...</span>
+  </div>
+
+  <div id="dashboard" class="dashboard" style="display: none;">
+    <div class="stat-card">
+      <div class="stat-label">Total Edits</div>
+      <div class="stat-value" id="total-edits">42</div>
+      <div class="stat-sub">Today</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Lines of Code</div>
+      <div class="stat-value" id="loc-count">24</div>
+      <div class="stat-sub">In current file</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Active Time</div>
+      <div class="stat-value">2h 15m</div>
+      <div class="stat-sub">Session duration</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Current Language</div>
+      <div class="stat-value">JavaScript</div>
+      <div class="stat-sub">Mode: Collaborative</div>
+    </div>
+  </div>
+
+  <div class="participants-section">
+    <div class="participants-title">
+      <span style="width:24px;height:24px;border-radius:50%;background:#aa3bff;display:flex;align-items:center;justify-content:center;">👥</span>
+      Active Participants
+      <span id="user-count" style="margin-left:auto;font-size:14px;">0</span>
+    </div>
+    <div class="participant-list" id="participants">
+      <div style="color: rgba(255,255,255,0.7);font-size:14px;">Waiting for connection...</div>
+    </div>
+  </div>
+
+  <div class="editor-container">
+    <div class="toolbar">
+      <label>Language:</label>
+      <select class="language-select" id="language">
+        <option>javascript</option>
+        <option>typescript</option>
+        <option>python</option>
+        <option>java</option>
+        <option>c</option>
+      </select>
+    </div>
+    <textarea id="editor" spellcheck="false"></textarea>
+  </div>
+
+  <div class="status-bar">
+    <span>Real-time collaborative coding platform</span>
+    <span id="live-status" style="display: none; display: flex; gap: 8px; align-items: center;">
+      <span style="width: 8px; height: 8px; border-radius: 50%; background: #4caf50; animation: pulse 2s infinite;"></span>
+      Live sync enabled
+    </span>
+  </div>
+
+  <div id="join-modal" class="modal">
+    <div class="modal-content">
+      <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#aa3bff,#6b46c1);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:28px;">💻</div>
+      <h2>Welcome to CodeCollab</h2>
+      <p>Enter your name to join the collaborative coding session</p>
+      <input type="text" id="name-input" placeholder="Your name" />
+      <button onclick="joinSession()">Join Session</button>
+    </div>
+  </div>
+
+  <script>
+    var editor = document.getElementById('editor');
+    var statusEl = document.getElementById('status');
+    var usersEl = document.getElementById('participants');
+    var modal = document.getElementById('join-modal');
+    var nameInput = document.getElementById('name-input');
+
+    var ws = null;
+    var userId = crypto.randomUUID ? crypto.randomUUID() : 'user-' + Date.now();
+    var myName = 'User ' + Math.floor(Math.random() * 1000);
+    var users = [];
+    var editCount = 0;
+
+    // Welcome code
+    var welcomeCode = '// Welcome to CodeCollab!\n' +
+      '// Real-time collaborative coding\n' +
+      '\n' +
+      'function hello(name) {\n' +
+      '  console.log("Hello, " + name + "! Welcome to CodeCollab!");\n' +
+      '}\n' +
+      '\n' +
+      '// Try editing this file - changes sync in real-time!\n' +
+      "hello('Collaborative Developer');";
+    editor.value = welcomeCode;
+
+    function connect() {
+      try {
+        ws = new WebSocket('ws://localhost:8765');
+
+        ws.onopen = function() {
+          statusEl.textContent = 'Connected';
+          statusEl.style.color = '#4caf50';
+          document.getElementById('live-status').style.display = 'flex';
+          ws.send(JSON.stringify({ type: 'join', userId: userId, userName: myName }));
+        };
+
+        ws.onmessage = function(event) {
+          var data = JSON.parse(event.data);
+          handleMessage(data);
+        };
+
+        ws.onclose = function() {
+          statusEl.textContent = 'Disconnected';
+          statusEl.style.color = '#f44336';
+          document.getElementById('live-status').style.display = 'none';
+          setTimeout(connect, 2000);
+        };
+      } catch (e) {
+        statusEl.textContent = 'Connection failed';
+        statusEl.style.color = '#f44336';
+      }
+    }
+
+    function handleMessage(data) {
+      switch (data.type) {
+        case 'join':
+          if (!users.find(function(u) { return u.id === data.userId; })) {
+            users.push({ id: data.userId, name: data.userName, joinedAt: Date.now() });
+            updateUsersList();
+          }
+          break;
+        case 'leave':
+          users = users.filter(function(u) { return u.id !== data.userId; });
+          updateUsersList();
+          break;
+        case 'users':
+          users = data.users || [];
+          updateUsersList();
+          break;
+        case 'code':
+          if (data.userId !== userId && data.content !== editor.value) {
+            editor.value = data.content;
+            editCount++;
+            updateStats();
+          }
+          break;
+      }
+    }
+
+    function updateUsersList() {
+      var html = users.map(function(u) {
+        var timeDiff = Math.floor((Date.now() - u.joinedAt) / 1000);
+        return '<div class="participant-item">' +
+          '<div class="participant-avatar">' + u.name.charAt(0).toUpperCase() + '</div>' +
+          '<div class="participant-info">' +
+          '<div class="participant-name">' + u.name + '</div>' +
+          '<div class="participant-time">' + timeDiff + 's ago</div>' +
+          '</div></div>';
+      }).join('');
+      usersEl.innerHTML = html || '<div style="color: rgba(255,255,255,0.7);font-size:14px;">Waiting for connection...</div>';
+      document.getElementById('user-count').textContent = users.length;
+    }
+
+    function updateStats() {
+      document.getElementById('loc-count').textContent = editor.value.split('\n').length;
+      editCount++;
+      document.getElementById('total-edits').textContent = editCount;
+    }
+
+    function joinSession() {
+      var name = nameInput.value || myName;
+      myName = name;
+      modal.style.display = 'none';
+      connect();
+      updateStats();
+    }
+
+    function toggleDashboard() {
+      var dashboard = document.getElementById('dashboard');
+      var btn = document.querySelector('.dashboard-toggle');
+      if (dashboard.style.display === 'none') {
+        dashboard.style.display = 'grid';
+        btn.textContent = 'Hide Dashboard';
+      } else {
+        dashboard.style.display = 'none';
+        btn.textContent = 'Show Dashboard';
+      }
+    }
+
+    modal.style.display = 'block';
+
+    editor.addEventListener('input', function() {
+      editCount++;
+      document.getElementById('loc-count').textContent = editor.value.split('\n').length;
+      document.getElementById('total-edits').textContent = editCount;
+
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        setTimeout(function() {
+          ws.send(JSON.stringify({
+            type: 'code',
+            userId: userId,
+            userName: myName,
+            content: editor.value
+          }));
+        }, 300);
+      }
+    });
+  </script>
+
+  <style>
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+  </style>
+</body>
+</html>
